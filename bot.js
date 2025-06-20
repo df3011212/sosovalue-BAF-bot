@@ -80,7 +80,7 @@ async function runTask() {
 }
 
 // 🕐 每天早上 08:00（台灣時間）
-cron.schedule('0 0 8 * * *', runTask, {
+cron.schedule('0 55 7 * * *', runTask, {
   timezone: process.env.TZ || 'Asia/Taipei'
 });
 
