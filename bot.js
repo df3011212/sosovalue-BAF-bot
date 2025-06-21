@@ -12,13 +12,14 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// === 設定參數 ===
 const URL         = 'https://sosovalue.com/tc/dashboard/fgi-indicator';
 const INDEX_SEL   = '.items-center.justify-center.rounded-sm .font-bold';
 const DATE_SEL    = '.items-center.justify-center.rounded-sm .text-neutral-fg-4-rest';
 const CANVAS_SEL  = 'canvas[data-zr-dom-id="zr_0"]';
 const LAST_FILE   = path.join(__dirname, 'last_index.txt');
 
-// === 情緒分級邏輯 ===
+// === 評估情緒 ===
 function evaluate(score) {
   const n = Number(score);
   if (n <= 20) return { level: '😱 極度恐懼', advice: '超跌區，可分批佈局' };
@@ -28,6 +29,7 @@ function evaluate(score) {
   return { level: '🤪 極度貪婪', advice: '警惕追高風險' };
 }
 
+// === 前值儲存與讀取 ===
 function readLast() {
   return fs.existsSync(LAST_FILE) ? Number(fs.readFileSync(LAST_FILE, 'utf8')) : null;
 }
@@ -35,6 +37,7 @@ function writeLast(val) {
   fs.writeFileSync(LAST_FILE, String(val));
 }
 
+// === 任務主體 ===
 async function runTask() {
   console.log('\n🚀 [任務啟動] ', new Date().toLocaleString());
 
@@ -54,8 +57,8 @@ async function runTask() {
     const indexNum  = Number(indexText);
 
     const { level, advice } = evaluate(indexNum);
-    const prev  = readLast();
-    const diff  = prev !== null ? indexNum - prev : 0;
+    const prev       = readLast();
+    const diff       = prev !== null ? indexNum - prev : 0;
     const trendEmoji = diff === 0 ? '⏸' : diff > 0 ? '📈' : '📉';
 
     // 擷取圖表
@@ -67,11 +70,11 @@ async function runTask() {
     const filepath = path.join(folder, filename);
     await chart.screenshot({ path: filepath });
 
-    // 發送至 Telegram
+    // 傳送到 Telegram
     const { BOT_TOKEN, CHAT_ID } = process.env;
     const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-    // 1️⃣ 發送文字訊息
+    // 1️⃣ 傳送文字訊息
     const textMsg = 
 `📊 *SoSoValue 恐懼與貪婪指數*（${dateText}）
 今日分數：*${indexNum}*　${trendEmoji} ${diff > 0 ? '+' : ''}${diff}
@@ -84,7 +87,7 @@ async function runTask() {
       parse_mode: 'Markdown'
     });
 
-    // 2️⃣ 發送圖表
+    // 2️⃣ 傳送圖表圖片
     const form = new FormData();
     form.append('chat_id', CHAT_ID);
     form.append('caption', `🖼️ 指數圖表（${dateText}）`);
@@ -94,8 +97,9 @@ async function runTask() {
       maxBodyLength: Infinity
     });
 
-    console.log('✅ 已成功發送至 Telegram！');
+    console.log('✅ 已成功發送至 Telegram');
     writeLast(indexNum);
+
   } catch (err) {
     console.error('❌ 發生錯誤：', err.message);
   } finally {
@@ -103,5 +107,9 @@ async function runTask() {
   }
 }
 
-// ✅ 執行一次（也可換成排程）
-runTask();
+// 🕒 每天 12:05:00（Asia/Taipei）自動執行
+cron.schedule('0 5 12 * * *', runTask, {
+  timezone: 'Asia/Taipei'
+});
+
+console.log('🟢 排程啟動完成，將於每天 12:05 自動推播 Telegram');
