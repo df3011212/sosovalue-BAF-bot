@@ -242,7 +242,7 @@ async function heatmapTask(interval='4h'){
     const price = await getLastPrice(p.name);
 
     const caption =
-`📊 ${p.name}（${dayjs.unix(tsLast).format('YYYY-MM-DD HH:mm')})
+`📊 ${p.name}（${dayjs.unix(tsLast).tz('Asia/Taipei').format('YYYY-MM-DD HH:mm')})
 ${p.label ? `🕒 圖表類型：${p.label}\n` : ''}
 🔹 關鍵阻力區
 ${fmt(res,'阻力')}
